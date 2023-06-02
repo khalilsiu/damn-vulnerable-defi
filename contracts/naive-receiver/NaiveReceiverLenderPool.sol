@@ -21,9 +21,11 @@ contract NaiveReceiverLenderPool is ReentrancyGuard {
     function flashLoan(address borrower, uint256 borrowAmount) external nonReentrant {
 
         uint256 balanceBefore = address(this).balance;
+        // should not be this line because this will not be able to drain caller's balance
         require(balanceBefore >= borrowAmount, "Not enough ETH in pool");
 
 
+        // should not be this line because this will not be able to drain caller's balance
         require(borrower.isContract(), "Borrower must be a deployed contract");
         // Transfer ETH and handle control to receiver
         borrower.functionCallWithValue(
@@ -34,6 +36,7 @@ contract NaiveReceiverLenderPool is ReentrancyGuard {
             borrowAmount
         );
         
+        // should not be this line because this will not be able to drain caller's balance
         require(
             address(this).balance >= balanceBefore + FIXED_FEE,
             "Flash loan hasn't been paid back"
