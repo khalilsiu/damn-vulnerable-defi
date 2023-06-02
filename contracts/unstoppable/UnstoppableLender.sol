@@ -31,19 +31,31 @@ contract UnstoppableLender is ReentrancyGuard {
     }
 
     function flashLoan(uint256 borrowAmount) external nonReentrant {
+        // our purpose is to stop the flash loan function from running
+        // we need to find places where the function would stop running
+        // this is not the place
         require(borrowAmount > 0, "Must borrow at least one token");
 
         uint256 balanceBefore = damnValuableToken.balanceOf(address(this));
+        // we can assume that damnValuableToken is a bug free contract
+        // so this place is also fine
         require(balanceBefore >= borrowAmount, "Not enough tokens in pool");
 
         // Ensured by the protocol via the `depositTokens` function
+        // this part is suspicious, we get balanceBefore from checking the balance of DVT in the contract
+        // while there is another variable poolBalance that tracks the balance as well
+        // if we can find a way to make poolBalance not equal to balanceBefore, this function stops
+        // we can do this by sending this contract DVT directly without calling depositTokens
         assert(poolBalance == balanceBefore);
         
+        // transfer tokens to receiver
         damnValuableToken.transfer(msg.sender, borrowAmount);
         
+        // receiver receiveTokens is called which returns the token back to the pool    
         IReceiver(msg.sender).receiveTokens(address(damnValuableToken), borrowAmount);
         
         uint256 balanceAfter = damnValuableToken.balanceOf(address(this));
+        // we can assume that damnValuableToken is a bug free contract
         require(balanceAfter >= balanceBefore, "Flash loan hasn't been paid back");
     }
 }
